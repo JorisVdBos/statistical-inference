@@ -1,0 +1,78 @@
+---
+title: "Coursera course Statistical Inference project part 2"
+author: "Joris Van den Bossche"
+date: "1 september 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+# Overview
+In part 2 the TootGrowth data from R will be analyzed. By hypothesis tests the tootgrowth is compared for different supplements and dosages.  
+Conclusions are that increasing the supplement dosage has a larger effect on the tooth length. Also the OJ supplement is significantly more effective compared to the VC supplement, especially for 0.5 and 1 milligrams/day.
+
+## The toothgrowth data
+ToothGrowth data is accessible by default in R.
+```{r}
+str(ToothGrowth)
+summary(ToothGrowth)
+```
+The help page has this to say about the variables of the data set:  
+- len 	numeric 	Tooth length  
+- supp 	factor 	Supplement type (VC or OJ)  
+- dose 	numeric 	Dose in milligrams/day  
+  
+This analysis will try to determine the influence of the supplement type on the tooth length.  
+For this analysis, the data frame is transformed to a data table and the factor is processed as character.
+```{r}
+library(data.table)
+TG <- data.table(ToothGrowth)
+TG$supp <- as.character(TG$supp)
+```
+
+# Data exploration
+A boxplot will show the difference in length by sup:
+```{r}
+library(ggplot2)
+ggplot(data=  TG) + geom_boxplot(aes(factor(dose), len, col = supp))
+```
+On first sight, it does appear there is a strong difference between the dosages, and maybe a difference between the supplements. 
+
+# Statistical tests
+
+## Supplement
+First a simple unpaired test to look at the two different groups, if 
+```{r}
+t.test(TG[supp == "VC"]$len, TG[supp == "OJ"]$len, paired = FALSE, alternative = "less")
+```
+The test rejects the null hypothesis, so on a confidence level of 5% it concludes the difference in means of supplements to be less than zero. The p-value is about 3%.  
+
+## Dosage
+Since there are three seperate groups of dosages we can look into the difference of each:  
+The difference between dosage 0.5 and 1 p-value:
+```{r}
+t.test(TG[dose == 0.5]$len, TG[dose == 1]$len, paired = FALSE, alternative = "less")$p.value
+```
+The difference between dosage 2 and 3 p-value:
+```{r}
+t.test(TG[dose == 1]$len, TG[dose == 2]$len, paired = FALSE, alternative = "less")$p.value
+```
+The difference between dosage 0.5 and 2 p-value:
+```{r}
+t.test(TG[dose == 0.5]$len, TG[dose == 2]$len, paired = FALSE, alternative = "less")$p.value
+```
+The p values are very, very low, it is very clear there is a big difference between the three dosages. This is also reflected in the boxplots above. 
+
+## Subsets
+Looking at the effect of a different supplement of a single dosage:
+```{r}
+for(i in c(0.5, 1, 2)){
+  print(paste("Dosage equal to", i))
+  print(paste("p-value", 
+              t.test(TG[supp == "VC" & dose == i]$len, TG[supp == "OJ" & dose == i]$len, paired = FALSE, alternative = "less")$p.value))
+}
+```
+Dosage 0.5 and 1 are significantly different, and the null hypothesis can be rejected on a 5% significance level. Dosage 2, cannot. The p-values for 0.5 and 1 milligrams/day dosages suggest an even smaller significance level can be used to prove efficiency.
