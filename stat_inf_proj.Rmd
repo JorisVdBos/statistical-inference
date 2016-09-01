@@ -1,0 +1,92 @@
+---
+title: "Coursera course Statistical Inference project"
+author: "Joris Van den Bossche"
+date: "1 september 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+# Overview
+
+
+# Simulation of the exponential distribution
+In this section the exponential distribution will be simulated using the R function "rexp". The rate or lambda parameter is set to 0.2. 10.000 values are simulated; the first six values are shown below.
+```{r}
+set.seed(10)
+simulationExp <- data.frame(draws = rexp(10000, rate = 0.2))
+head(simulationExp)
+```
+Now to construct a plot using ggPlot2, as follows:
+```{r, fig.height=2.5}
+library(ggplot2)
+ggplot(data = simulationExp) +
+  geom_histogram(aes(draws))
+```
+It looks like the exponential distribution, so that is a good start!  
+
+## Sample Mean versus Theoretical Mean
+To check if the simulated mean is identical to the theoretical mean, a simulation of 10000 means is collected. Each mean will be calculated from 40 random draws of the exponential distribution:
+```{r,  fig.height=2.5}
+set.seed(12)
+simulatedMeans = NULL
+for (i in 1 : 1000) simulatedMeans = c(simulatedMeans, mean(rexp(40, rate = 0.2)))
+simulatedMeans <- data.frame(means = simulatedMeans)
+ggplot(data = simulatedMeans) +
+  geom_histogram(aes(means))+
+  geom_vline(xintercept = mean(simulatedMeans$means), col = "blue")
+```
+Esimating the original distribution mean by calculating the mean of the simulated means:
+```{r}
+mean(simulatedMeans$means)
+```
+The theoretical mean of an exponential distribution is the inverse of lambda. In this case of lambda equal 0.2, the inverse is 5. The estimated value is close to this. How close can be tested with a p-value, the null hypothesis being the mean equal to 5:
+```{r}
+t.test(simulatedMeans$means, mu = 5)
+```
+The results show a p-value of 0.6825. The null hypothesis is not rejected. 5 also is part of the confidence interval.  
+
+## Sample Variance versus Theoretical Variance
+The variance can be simulated the same way as the mean. Setting the same seed will make us work with the same numbers that were generated when calculating the means.
+```{r, fig.height=2.5}
+set.seed(12)
+simulatedVariance = NULL
+for (i in 1 : 1000) simulatedVariance = c(simulatedVariance, sd(rexp(40, rate = 0.2))^2)
+simulatedVariance <- data.frame(variances = simulatedVariance)
+ggplot(data = simulatedVariance) +
+  geom_histogram(aes(variances)) +
+  geom_vline(xintercept = mean(simulatedVariance$variances), col = "blue")
+
+```
+The original distribution variance can be estimated taking the mean of all variances simulated.
+```{r}
+mean(simulatedVariance$variances)
+```
+The variance for exponential distributions is lambda to the power of minus two. In this case, that results to 25. We can device another p-test as such:
+```{r}
+t.test(simulatedVariance$variances, mu = 25)
+```
+The p-value is 95.61%, so the null hypothesis (that the variance equals 25) is very likely.
+
+## Distribution
+Going back to the graph about the mean. The variance in estimating the mean is estimated by:
+```{r}
+sd(simulatedMeans$means)
+```
+The theoretical value of this is the population variance divided by the amount of draws, in this case 40 draws, meaning:
+```{r}
+25/40
+```
+The two distributions are plotted over the graph using the density instead of a histogram and ggplot's stat_function.
+```{r, fig.height=2.5}
+ggplot(data = simulatedMeans) +
+  geom_density(aes(means)) +
+  stat_function(fun = dnorm, 
+                colour = "red", 
+                args = list(mean = 5, 
+                            sd = sd(simulatedMeans$means)))
+```
+The central limit theorem sais for sufficiëntly high n, the density function will be normally distributed. For n = 40 this is allready a very good approximation.
